@@ -28,7 +28,7 @@ public class SquishyBlock extends ApplicationAdapter {
     Collidable blocky;
     Collidable bee;
     Collidable tetronimo;
-    ArrayList<Collidable> colliders = new ArrayList<>();
+    ArrayList<Collidable> colliders = new ArrayList<Collidable>();
 
     // Some Textures
     Texture background;
