@@ -2,6 +2,7 @@
 		       (Working title)
 		      A game in progress
 
+THIS IS A ARCHIVED VERSION WITH PIXEL-PERFECT COLLISION
 
 This is a small preview of what is to come. Nothing much happening yet, but you can
 easily see that collision detection works.
