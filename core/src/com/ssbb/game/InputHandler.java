@@ -14,52 +14,41 @@ public class InputHandler {
         if (Gdx.input.isKeyPressed(Input.Keys.RIGHT) && !player.colliding) {
             player.flip(false);
             player.ax = 10;
-//            if (player.x > 640) {
-//                player.x = -40;
-//            }
-            player.direction = 1;
         }
 
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT) && !player.colliding) {
             player.flip(true);
-            player.ax = 10;
-//            if (player.x < -20) {
-//                player.x = 640;
-//            }
-            player.direction = -1;
+            player.ax = -10;
         }
 
         if (Gdx.input.isKeyPressed(Input.Keys.UP) && !player.colliding) {
-            if (player.y == 64) {
-                player.ay += 20;
+            if (player.grounded) {
+                player.ay += 22;
+                player.grounded = false;
             }
         }
-
-        if (Gdx.input.isKeyPressed(Input.Keys.DOWN) && !player.colliding) {
-            player.y -= 10;
-            if (player.y < 20) {
-                player.y = 20;
-            }
-        }
-
 
         // Tetronimo commands
-        if (Gdx.input.isKeyPressed(Input.Keys.W)) {
+        if (Gdx.input.isKeyPressed(Input.Keys.W) && !block.dropping && !block.rising) {
             block.y += 10;
         }
 
-        if (Gdx.input.isKeyPressed(Input.Keys.S)) {
+        if (Gdx.input.isKeyPressed(Input.Keys.S) && !block.dropping && !block.rising) {
             block.y -= 10;
             if (block.y < 20) {
                 block.y = 20;
             }
         }
-        if (Gdx.input.isKeyPressed(Input.Keys.A)) {
+        if (Gdx.input.isKeyPressed(Input.Keys.A) && !block.dropping && !block.rising) {
             block.x -= 10;
         }
 
-        if (Gdx.input.isKeyPressed(Input.Keys.D)) {
+        if (Gdx.input.isKeyPressed(Input.Keys.D) && !block.dropping && !block.rising) {
             block.x += 10;
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.SPACE) && !block.dropping && block.canDrop) {
+            block.dropping = true;
+            block.canDrop = false;
         }
 
     }

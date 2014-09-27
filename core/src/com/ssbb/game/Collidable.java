@@ -16,6 +16,9 @@ public class Collidable {
     public Sprite sprite;
     public boolean colliding;
     public Polygon bounding;
+    public int direction;
+    public boolean grounded;
+    public boolean dead;
 
     public Collidable(String name) {
         // name is the filename, and will setup the sprite and mask
@@ -41,6 +44,11 @@ public class Collidable {
 
     public void flip(boolean t) {
         sprite.setFlip(t, false);
+        if(t){
+            direction = -1;
+        } else {
+            direction = 1;
+        }
         // This does not work for pixel perfect collision
         // Would need to generate a mask for flipped sprite
         // Final game will not use pixel perfect collision

@@ -14,16 +14,18 @@ public class Grid {
     private ArrayList<Collidable>[][] grid = new ArrayList[3][3];
     private int height;
     private int width;
+    SquishyBlock game;
 
-    public Grid(int height, int width) {
+    public Grid(int height, int width, SquishyBlock game) {
         // A simple constructor
         this.height = height;
         this.width = width;
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
-                grid[i][j]= new ArrayList<Collidable>();
+                grid[i][j] = new ArrayList<Collidable>();
             }
         }
+        this.game = game;
     }
 
     public void clear() {
@@ -45,9 +47,9 @@ public class Grid {
         cells = cell(bounds.x + bounds.width, bounds.y);
         safeAdd(cells, entity);
         cells = cell(bounds.x + bounds.width, bounds.y + bounds.height);
-        safeAdd(cells,entity);
+        safeAdd(cells, entity);
         cells = cell(bounds.x, bounds.y + bounds.height);
-        safeAdd(cells,entity);
+        safeAdd(cells, entity);
     }
 
     private void safeAdd(int[] cells, Collidable entity) {
@@ -79,18 +81,30 @@ public class Grid {
         return cells;
     }
 
-    public ArrayList<Collidable> get(int x, int y){
+    public ArrayList<Collidable> get(int x, int y) {
         // Returns all elements within a given grid
         return grid[x][y];
     }
 
-    public void resolveCollisions(ArrayList<Collidable> colliders, Player player){
+    public void resolveCollisions() {
+
+        ArrayList<Collidable> colliders = game.colliders;
+        ArrayList<Collidable> toDelete = new ArrayList<Collidable>();
+        Player player = game.player;
         // Adding everything to the grid
         this.clear();
         for (Collidable c : colliders) {
-            this.add(c);
-            c.sprite.setPosition(c.x,c.y);
-            c.bounding.setPosition(c.x,c.y);
+            if (!c.dead) {
+                this.add(c);
+                c.sprite.setPosition(c.x, c.y);
+                c.bounding.setPosition(c.x, c.y);
+            } else {
+                toDelete.add(c);
+            }
+        }
+
+        for (Collidable c : toDelete){
+            colliders.remove(c);
         }
 
         // Checking each grid cell for more than one entity
@@ -119,7 +133,9 @@ public class Grid {
                                 second.sprite.getBoundingRectangle().getCenter(center2);
 
                                 center1 = center1.sub(center2); // Subtracting vectors to get direction
-
+                                if (first == game.tetronimo && game.tetronimo.dropping) {
+                                    second.dead = true;
+                                }
                                 if (first == player) {
                                     // Accelerate the player the right amount in the right direction
                                     player.ay = (int) center1.y / 3;
@@ -145,8 +161,8 @@ public class Grid {
         }
 
         for (Collidable c : colliders) {
-            c.sprite.setPosition(c.x,c.y);
-            c.bounding.setPosition(c.x,c.y);
+            c.sprite.setPosition(c.x, c.y);
+            c.bounding.setPosition(c.x, c.y);
         }
     }
 

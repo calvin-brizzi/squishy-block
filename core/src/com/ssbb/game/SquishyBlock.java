@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapObjects;
+import com.badlogic.gdx.maps.MapProperties;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
@@ -52,13 +53,16 @@ public class SquishyBlock extends ApplicationAdapter {
     public OrthographicCamera cam;
     public TiledMap map;
 
+    int mapWidth;
+    int mapHeight;
     MapLayer layer;
     MapObjects objects;
     Array<RectangleMapObject> obstacles;
     OrthogonalTiledMapRenderer renderer;
+    CameraController cameraController;
 
     // Constants and a grid for collision detection
-    public Grid grid = new Grid(480, 640);
+    public Grid grid = new Grid(480, 640, this);
 
 
     @Override
@@ -69,20 +73,33 @@ public class SquishyBlock extends ApplicationAdapter {
         obstacles = objects.getByType(RectangleMapObject.class);
         renderer = new OrthogonalTiledMapRenderer(map, 1);
 
+        MapProperties properties = map.getProperties();
+        mapWidth = properties.get("width", Integer.class) * 64;
+        mapHeight = properties.get("height", Integer.class) * 64;
+
+        System.out.print(mapWidth +" --- " + mapHeight);
+
         // Usual initializers
         batch = new SpriteBatch();
         shapeRenderer = new ShapeRenderer();
 
-        player = new Player("player.png");
+        player = new Player("player.png", this);
         blocky = new GroundEnemy("enemy.png", player);
         bee = new FlyingEnemy("bee.png", player);
-        tetronimo = new Block("block.png");
-        tetronimo.setPolygon(tetrominoVert());
 
+        cam = new OrthographicCamera();
+        cam.setToOrtho(false, 1200, 640);
+        cam.update();
+
+        cameraController = new CameraController(cam, player, mapWidth, mapHeight);
+        tetronimo = new Block("block.png", cameraController);
+        tetronimo.setPolygon(tetrominoVert());
+        tetronimo.x = 500;
+        tetronimo.y = 500;
+        colliders.add(tetronimo);
         colliders.add(player);
-//        colliders.add(blocky);
-   //    colliders.add(bee);
-//        colliders.add(tetronimo);
+       colliders.add(blocky);
+       colliders.add(bee);
 
         background = new Texture("background.png");
         terrain = new Texture("terrain.png");
@@ -91,19 +108,15 @@ public class SquishyBlock extends ApplicationAdapter {
         player.x = 40;
         player.y = 20;
 
-        tetronimo.x = 100;
-        tetronimo.y = 100;
 
-        blocky.x = 300;
-        blocky.y = 20;
+        blocky.x = 900;
+        blocky.y = 64;
 
-        bee.x = 300;
+        bee.x = 2000;
         bee.y = 200;
         bee.flip(true);
 
-        cam = new OrthographicCamera();
-        cam.setToOrtho(false, 1200, 640);
-        cam.update();
+
     }
 
     @Override
@@ -114,21 +127,18 @@ public class SquishyBlock extends ApplicationAdapter {
         player.update();
         blocky.update();
         bee.update();
+        tetronimo.update();
 
-        grid.resolveCollisions(colliders, player);
+        grid.resolveCollisions();
         for(RectangleMapObject o: obstacles){
-            if (Intersector.overlapConvexPolygons(player.bounding, Collidable.rectToPoly(o.getRectangle()))) {
-                System.out.println("Collide");
+            if (player.sprite.getBoundingRectangle().overlaps(o.getRectangle())) {
+                player.resolve(o.getRectangle());
+            }
+            if (tetronimo.sprite.getBoundingRectangle().overlaps(o.getRectangle())){
+                tetronimo.resolve(o.getRectangle());
             }
         }
 
-        cam.position.x = player.x;
-        cam.update();
-
-        renderer.setView(cam);
-        renderer.render();
-
-        batch.setProjectionMatrix(cam.combined);
         r.render();
 
 
@@ -140,7 +150,7 @@ public class SquishyBlock extends ApplicationAdapter {
             shapeRenderer.polygon(player.bounding.getTransformedVertices());
             shapeRenderer.polygon(blocky.bounding.getTransformedVertices());
             shapeRenderer.polygon(bee.bounding.getTransformedVertices());
-            shapeRenderer.polygon( Collidable.rectToPoly(obstacles.get(0).getRectangle()).getTransformedVertices());
+//            shapeRenderer.polygon( Collidable.rectToPoly(obstacles.get(0).getRectangle()).getTransformedVertices());
             shapeRenderer.end();
         }
     }

@@ -13,14 +13,14 @@ public class Renderer {
         this.game = game;
     }
     public void render(){
-        // Clear and render everything
-        //Gdx.gl.glClearColor(1, 0, 0, 1);
-        //Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        game.cameraController.update();
 
+        game.renderer.setView(game.cam);
+        game.renderer.render();
+
+        game.batch.setProjectionMatrix(game.cam.combined);
         // Render sprites
         game.batch.begin();
-//        game.batch.draw(game.background, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-//        game.batch.draw(game.terrain, 0, 0, Gdx.graphics.getWidth(), 20);
         for(Collidable c: game.colliders){
             game.batch.draw(c.sprite, c.sprite.getX(), c.sprite.getY());
         }
