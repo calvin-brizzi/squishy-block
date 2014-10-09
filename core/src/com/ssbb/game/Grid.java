@@ -1,39 +1,35 @@
 package com.ssbb.game;
 
-import com.badlogic.gdx.math.Intersector;
+import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.math.Vector2;
-
 import java.util.ArrayList;
 
 /**
  * A grid for more efficient collision detection
- * Created by calvin on 2014/09/07.
+ * Now also deals with the collisions
+ * Also, been collapsed into an array
+ * Created by Calvin on 2014/09/07.
  */
 public class Grid {
-    private ArrayList<Collidable>[][] grid = new ArrayList[3][3];
-    private int height;
+
+    private ArrayList<Collidable>[] grid = new ArrayList[6];
     private int width;
     SquishyBlock game;
 
-    public Grid(int height, int width, SquishyBlock game) {
+    public Grid(int width, SquishyBlock game) {
         // A simple constructor
-        this.height = height;
+
         this.width = width;
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                grid[i][j] = new ArrayList<Collidable>();
-            }
+        for (int i = 0; i < 6; i++) {
+            grid[i] = new ArrayList<Collidable>();
         }
         this.game = game;
     }
 
     public void clear() {
         // Clear all objects
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                grid[i][j].clear();
-            }
+        for (int i = 0; i < 6; i++) {
+            grid[i].clear();
         }
     }
 
@@ -42,7 +38,7 @@ public class Grid {
         // Because our sprites < size of a grid cell, we can just check positions of vertices
         Rectangle bounds = entity.sprite.getBoundingRectangle();
 
-        int[] cells = cell(bounds.x, bounds.y);
+        int cells = cell(bounds.x, bounds.y);
         safeAdd(cells, entity);
         cells = cell(bounds.x + bounds.width, bounds.y);
         safeAdd(cells, entity);
@@ -52,108 +48,107 @@ public class Grid {
         safeAdd(cells, entity);
     }
 
-    private void safeAdd(int[] cells, Collidable entity) {
+    private void safeAdd(int cell, Collidable entity) {
         // Add only if not present
-        if (!grid[cells[0]][cells[1]].contains(entity)) {
-            grid[cells[0]][cells[1]].add(entity);
+        if (!grid[cell].contains(entity)) {
+            grid[cell].add(entity);
         }
     }
 
-    public int[] cell(float x, float y) {
+    public int cell(float x, float y) {
         // Checks the correct location in most naive way ever
-        int[] cells = new int[2];
-        if (x < height / 3) {
-            cells[0] = 0;
-        } else if (x < height * 2 / 3) {
-            cells[0] = 1;
+        int cell = 0;
+        int t = (int) (width / x);
+        if (t > 6) {
+            cell = 0;
+        } else if (t > 3) {
+            cell = 1;
+        } else if (t > 2) {
+            cell = 2;
+        } else if (t > 1.5) {
+            cell = 3;
+        } else if (t > 5 / 6) {
+            cell = 4;
         } else {
-            cells[0] = 2;
+            cell = 5;
         }
-
-        if (y < width / 3) {
-            cells[1] = 0;
-        } else if (x < width * 2 / 3) {
-            cells[1] = 1;
-        } else {
-            cells[1] = 2;
-        }
-
-        return cells;
+        return cell;
     }
 
-    public ArrayList<Collidable> get(int x, int y) {
+    public ArrayList<Collidable> get(int x) {
         // Returns all elements within a given grid
-        return grid[x][y];
+        return grid[x];
     }
 
     public void resolveCollisions() {
 
+        // Get the colliders and list those that need to be deleted
         ArrayList<Collidable> colliders = game.colliders;
         ArrayList<Collidable> toDelete = new ArrayList<Collidable>();
         Player player = game.player;
-        // Adding everything to the grid
+
+        // Clear grid, then add everything to it
         this.clear();
         for (Collidable c : colliders) {
+            c.update();
+
             if (!c.dead) {
+                // Add if not dead
                 this.add(c);
                 c.sprite.setPosition(c.x, c.y);
-                c.bounding.setPosition(c.x, c.y);
             } else {
                 toDelete.add(c);
             }
         }
 
-        for (Collidable c : toDelete){
+        for (Collidable c : toDelete) {
             colliders.remove(c);
         }
 
         // Checking each grid cell for more than one entity
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
+        for (int i = 0; i < 6; i++) {
+            ArrayList<Collidable> collidables = this.get(i);
+            if (collidables.size() > 1) {
+                // Loop through the collidables and check them against all others
+                for (int indexOfFirst = 0; indexOfFirst < collidables.size(); indexOfFirst++) {
+                    // Start second index at index of first + 1 to avoid double checking
+                    Collidable first = collidables.get(indexOfFirst);
 
-                ArrayList<Collidable> collidables = this.get(i, j);
+                    for (int indexOfSecond = indexOfFirst + 1; indexOfSecond < collidables.size(); indexOfSecond++) {
+                        // So we can play nicely
+                        Collidable second = collidables.get(indexOfSecond);
 
-                if (collidables.size() > 1) {
-                    // Loop through the collidables and check them against all others
-                    for (int indexOfFirst = 0; indexOfFirst < collidables.size(); indexOfFirst++) {
-                        // Start second index at index of first + 1 to avoid double checking
-                        for (int indexOfSecond = indexOfFirst + 1; indexOfSecond < collidables.size(); indexOfSecond++) {
-                            Collidable first = collidables.get(indexOfFirst);
-                            Collidable second = collidables.get(indexOfSecond);
-
-                            if (Intersector.overlapConvexPolygons(first.bounding, second.bounding)) {
-                                // Check bounding polygons first
-
-                                // push the first element away proportionally to how much it collided
-                                // The below just gets nice numbers for the push
-                                Vector2 center1 = new Vector2();
-                                Vector2 center2 = new Vector2();
-
-                                first.sprite.getBoundingRectangle().getCenter(center1);
-                                second.sprite.getBoundingRectangle().getCenter(center2);
-
-                                center1 = center1.sub(center2); // Subtracting vectors to get direction
-                                if (first == game.tetronimo && game.tetronimo.dropping) {
-                                    second.dead = true;
-                                }
-                                if (first == player) {
-                                    // Accelerate the player the right amount in the right direction
-                                    player.ay = (int) center1.y / 3;
-                                    player.ax = Math.max(Math.abs((int) center1.x / 3), 10);
-                                    if (center1.x > 0) {
-                                        player.direction = 1;
+                        if (first.sprite.getBoundingRectangle().overlaps(second.sprite.getBoundingRectangle())) {
+                            if (first == player) {
+                                // Player checks
+                                if (second == game.tetronimo && !player.hit) {
+                                    if (game.tetronimo.dropping) {
+                                        // You hit yourself
+                                        player.life -= 5;
+                                        player.hit();
                                     } else {
-                                        player.direction = -1;
+                                        // You're probably standing on it
+                                        game.player.resolve(second.sprite.getBoundingRectangle());
                                     }
-                                    player.x += player.ax * player.direction;
-                                    player.colliding = true;
+                                } else if (second instanceof PowerUp) {
+                                    // Pickup the powerup!
+                                    ((PowerUp) second).get();
+                                } else if (second instanceof Door) {
+                                    // Winnar!
+                                    game.win();
+                                } else if (second != game.tetronimo) {
+                                    // You've hit an enemy!
+                                    second.dead = true;
+                                    player.life -= 3;
+                                    player.hit();
+                                    game.cameraController.shake(15);
                                 }
-                                second.colliding = true;
                             }
 
-                            second.colliding = false;
-                            first.colliding = false;
-
+                            if (first == game.tetronimo && game.tetronimo.dropping) {
+                                // You squished an enemy!
+                                second.dead = true;
+                            }
                         }
                     }
                 }
@@ -161,8 +156,18 @@ public class Grid {
         }
 
         for (Collidable c : colliders) {
+            // update positions
             c.sprite.setPosition(c.x, c.y);
-            c.bounding.setPosition(c.x, c.y);
+        }
+
+        for (RectangleMapObject o : game.obstacles) {
+            // Check against world objects
+            if (game.player.sprite.getBoundingRectangle().overlaps(o.getRectangle())) {
+                game.player.resolve(o.getRectangle());
+            }
+            if (game.tetronimo.sprite.getBoundingRectangle().overlaps(o.getRectangle())) {
+                game.tetronimo.resolve(o.getRectangle());
+            }
         }
     }
 

@@ -1,37 +1,46 @@
 package com.ssbb.game;
 
 /**
- * Created by calvin on 2014/09/26.
+ * A flying enemy!
+ * Created by Calvin on 2014/09/26.
  */
 public class FlyingEnemy extends Collidable {
+
     Player player;
     int speed = 7;
+    PathFinder aStar;
 
-    public FlyingEnemy(String name, Player player){
+    public FlyingEnemy(String name, Player player, PathFinder aStar) {
         super(name);
         this.player = player;
+        this.aStar = aStar;
     }
 
-    public void update(){
-        int xd = x - player.x;
-        int yd = y - player.y;
-        int dtp = xd * xd + yd * yd;
-        if(dtp < 1000000){
-            if(xd > 5){
-                x = x - speed;
-            } else if (xd < -5){
-                x = x + speed;
-            }
-            if (yd > 5){
-                y = y - speed;
-            } else if (yd < -5) {
-                y = y + speed;
-            }
+    public void update() {
+        int[] next = aStar.nextMove(this.sprite, player.sprite);
+        int xo = next[0] * 64 + 32;
+        int yo = next[1] * 64 + 32;
+        System.out.println(xo + ", " + yo);
+        int ySpeed = 7;
+        int xSpeed = 1;
 
-            if(y < 40){
-                y = 40;
-            }
+        if (Math.abs(xo - x) > Math.abs(yo - y)) {
+            xSpeed = 7;
+            ySpeed = 1;
+        }
+
+        if (x - xo > 0) {
+            x -= xSpeed;
+
+        } else if (x - xo < 0) {
+            x += xSpeed;
+        }
+
+        if (y - yo > 0) {
+            y -= ySpeed;
+
+        } else if (y - yo < 0){
+            y += ySpeed;
         }
     }
-
 }

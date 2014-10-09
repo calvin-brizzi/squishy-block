@@ -3,62 +3,56 @@
 		      A game in progress
 
 
-This is a small preview of what is to come. Nothing much happening yet, but you can
-easily see that collision detection works.
+This is a small preview of what is to come. Nothing much happening yet, but some
+features added.
 
 QuickStart guide:
 In a terminal run "make run"
-Arrows control the player (little blue man)
-WASD controls the tetronimo (tetris-like block)
-SPACE views the bounding polygons
+AD and SPACE control the player (little blue man)
+arrows controls the tetronimo (tetris-like block)
+right control brings death to the enemies
 
-Player collides with things and bounces back. The other things print "collision" to
-the terminal but don't have any logic to react. 
 
 I decided to do my own thing from scratch rather than the supplied blocky thing.
 Learnt a lot.
 
-So, now for marks:
+Implemented Features(detailed breakdown lower):
+- Player animation
+- PowerUps (gems)
+- Screen Shake
+- Win on reaching end
+- Player life
+- Two! Types of enemy
+- Cool Menu
+- First (and only for now) level tries to tech you tricks without throwing them in your face
+- Some, if I may say so myself, really clean code
 
-First 65%:
+Player Animation:
+	The little guy walks!
 
-Pixel checking is implemented by generating a mask when the object is created. This 
-only works for resources under 64 pixels wide, but that's ok, because mine are all
-under 60 pixels. If bigger resources were needed, the code would need to be modified.
+PowerUps:
+	Simple healing gems, but would be easy to create different kinds
 
-CollisionChecker does just that, using the relative position of the bottom left corner
-of each sprite, it shifts the bits and compares the correct rows by &ing the two longs.
+Screen Shake:
+	Because honestly? You know it looks awesome.
 
-Second 35%:
+Win on getting to Door:
+	Didn't think it was a feature, but it's in the assignment list, so yeah!
 
-To avoid the n^2 comparisons, I used a grid. A grid works well in this situation as 
-there are many moving parts and they are small, so they usually fit in to grid cells.
-It is also preferable to a Quadtree as it happens not to be a pain in the bloody ass
-to code (I coded a Quadtree first, 2 hours I will never see again) and implement.
+Player Life:
+	Hearts on a nice-looking hud.
 
-So objects are put into grid cells and we only check collisions in grid cells with 
-more than one object. Then, to further save time we only compare each object to the 
-following objects in the list (so the first to all the others, then the second to 
-all following objects etc)
+Different enemies, more to come:
+	Bees and blocks, and both come for you with vengence.
 
-This greatly reduces comparisons with a to O(n) in a quite bad case (there are a few 
-cases were it will be 4*n comparisons, but it's such an improbable edge case it's 
-not worth considering).
+Cool Menus:
+	These literally took me literal minutes to make.
 
-Third 15%:
+First Level:
+	I tried to do this so people learn the game without something in the game telling
+them about it. If you press control as you start, you crush the gem, "oh, that kills things"
+Then a bee comes at you, maybe you get hit, lose some life, no biggy. Next a jump you can't 
+make unless you use the block as a platform.. etc
 
-The shape that benefits from it is bound by a polygon that "hugs" it nicely. This
-reduces the number of pixel collision tests we do. We also create polygons for the 
-other shapes to allow us to use convenient methods from libgdx.
-
-Conclusion:
-
-Pixel perfect collisions probably won't be part of my final game. But the grid and 
-polygon optimazations probably will.
-
-Known bugs that were beyond the scope of this assingment:
-
-The tetronimo can go anywhere, needs to be bound to the playing area.
-If a player leaves the sides while not pressing a direction button, he will stay out.
-Both easy to fix, but I don't need to, and I probably want the behaviour in the 
-final game.
+Really Clean Code:
+	I mean look at it! GabeN would be proud.

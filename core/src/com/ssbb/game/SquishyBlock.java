@@ -3,21 +3,16 @@ package com.ssbb.game;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapObjects;
-import com.badlogic.gdx.maps.MapProperties;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
-import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
-import com.badlogic.gdx.math.Intersector;
-import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 
 import java.util.ArrayList;
@@ -30,143 +25,145 @@ import java.util.ArrayList;
 
 public class SquishyBlock extends ApplicationAdapter {
 
+    // So we know what to render
+    public enum GameState {
+        RUN,
+        MENU,
+        PAUSE,
+        DEAD,
+        END
+    }
+
+    GameState state = GameState.MENU;
+
     public static final int FRICTION = 1;
     public static final int GRAVITY = 1;
 
-    // Used to draw sprites and their bounding boxes
+    // Used to draw sprites, map and to start the game
     public SpriteBatch batch;
-    public ShapeRenderer shapeRenderer;
+    public Renderer gameRendered = new Renderer(this);
+    OrthogonalTiledMapRenderer tiledMapRenderer;
+    Creator creator = new Creator(this);
 
     // Our entities and the list to store them
     public Player player;
-    public GroundEnemy blocky;
-    public FlyingEnemy bee;
     public Block tetronimo;
     public ArrayList<Collidable> colliders = new ArrayList<Collidable>();
 
-    public InputHandler pc = new InputHandler();
-    public Renderer r = new Renderer(this);
+    // Input handler, camera and that jazz
+    public InputHandler inputHandler = new InputHandler();
+    public OrthographicCamera camera;
+    public CameraController cameraController;
 
-    // Some Textures
-    public Texture background;
-    public Texture terrain;
-    public OrthographicCamera cam;
+    // Map variables and objects
+    public int mapWidth;
+    public int mapHeight;
+    public MapLayer layer;
+    public MapObjects objects;
+    public Array<RectangleMapObject> obstacles;
     public TiledMap map;
 
-    int mapWidth;
-    int mapHeight;
-    MapLayer layer;
-    MapObjects objects;
-    Array<RectangleMapObject> obstacles;
-    OrthogonalTiledMapRenderer renderer;
-    CameraController cameraController;
+    // Menus and HUD textures
+    public Texture menu;
+    public Texture pause;
+    public Texture dead;
+    public Texture win;
+    public Texture heart;
+    public Texture halfHeart;
+    public Texture noHeart;
 
-    // Constants and a grid for collision detection
-    public Grid grid = new Grid(480, 640, this);
+    // "Grid" for collision detection
+    public Grid grid = new Grid(60 * 64, this);
+    int counter = 0;
 
+    // Let's animate!
+    int animationColumns = 3;
+    int animationRows = 4;
+    Animation playerAnimation;
+    Texture animationTexture;
+    TextureRegion[] animationFrames;
+    TextureRegion currentFrame;
+    float animationState;
+
+    // A*
+    PathFinder aStar;
 
     @Override
     public void create() {
-        map = new TmxMapLoader().load("t.tmx");
-        layer = map.getLayers().get("collisio");
-        objects = layer.getObjects();
-        obstacles = objects.getByType(RectangleMapObject.class);
-        renderer = new OrthogonalTiledMapRenderer(map, 1);
-
-        MapProperties properties = map.getProperties();
-        mapWidth = properties.get("width", Integer.class) * 64;
-        mapHeight = properties.get("height", Integer.class) * 64;
-
-        System.out.print(mapWidth +" --- " + mapHeight);
-
-        // Usual initializers
-        batch = new SpriteBatch();
-        shapeRenderer = new ShapeRenderer();
-
-        player = new Player("player.png", this);
-        blocky = new GroundEnemy("enemy.png", player);
-        bee = new FlyingEnemy("bee.png", player);
-
-        cam = new OrthographicCamera();
-        cam.setToOrtho(false, 1200, 640);
-        cam.update();
-
-        cameraController = new CameraController(cam, player, mapWidth, mapHeight);
-        tetronimo = new Block("block.png", cameraController);
-        tetronimo.setPolygon(tetrominoVert());
-        tetronimo.x = 500;
-        tetronimo.y = 500;
-        colliders.add(tetronimo);
-        colliders.add(player);
-       colliders.add(blocky);
-       colliders.add(bee);
-
-        background = new Texture("background.png");
-        terrain = new Texture("terrain.png");
-
-        // Initial positions
-        player.x = 40;
-        player.y = 20;
-
-
-        blocky.x = 900;
-        blocky.y = 64;
-
-        bee.x = 2000;
-        bee.y = 200;
-        bee.flip(true);
-
-
+        // Pass off most responsibilities
+        creator.newGame();
+        menu = new Texture("menu.png");
+        pause = new Texture("pause.png");
+        dead = new Texture("dead.png");
+        win = new Texture("win.png");
     }
 
     @Override
     public void render() {
 
-        pc.update(player, tetronimo);
+        // Let's see what to do
+        switch (state) {
+            case RUN:
+                counter++;
+                if (counter == 2){
+                    aStar.createGrid();
+                }
+                // Make everyone update, then render
+                inputHandler.update(player, tetronimo);
+                grid.resolveCollisions();
+                gameRendered.render();
 
-        player.update();
-        blocky.update();
-        bee.update();
-        tetronimo.update();
-
-        grid.resolveCollisions();
-        for(RectangleMapObject o: obstacles){
-            if (player.sprite.getBoundingRectangle().overlaps(o.getRectangle())) {
-                player.resolve(o.getRectangle());
-            }
-            if (tetronimo.sprite.getBoundingRectangle().overlaps(o.getRectangle())){
-                tetronimo.resolve(o.getRectangle());
-            }
-        }
-
-        r.render();
-
-
-        // Render bounding polygons if SPACE is pressed
-        if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
-            shapeRenderer.setProjectionMatrix(cam.combined );
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-            shapeRenderer.polygon(tetronimo.bounding.getTransformedVertices());
-            shapeRenderer.polygon(player.bounding.getTransformedVertices());
-            shapeRenderer.polygon(blocky.bounding.getTransformedVertices());
-            shapeRenderer.polygon(bee.bounding.getTransformedVertices());
-//            shapeRenderer.polygon( Collidable.rectToPoly(obstacles.get(0).getRectangle()).getTransformedVertices());
-            shapeRenderer.end();
+                if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+                    state = GameState.PAUSE;
+                }
+                //state = GameState.PAUSE;
+                break;
+            case MENU:
+                drawMenu(menu);
+                if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+                    creator.newGame();
+                    state = GameState.RUN;
+                }
+                break;
+            case PAUSE:
+                drawMenu(pause);
+                if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+                    state = GameState.RUN;
+                    camera.position.x = player.x;
+                    camera.position.y = player.y;
+                }
+                break;
+            case DEAD:
+                drawMenu(dead);
+                if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+                    state = GameState.MENU;
+                }
+                break;
+            case END:
+                drawMenu(win);
+                if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+                    state = GameState.MENU;
+                }
+                break;
         }
     }
 
-    public float[] tetrominoVert() {
-        // Basically just for testing, allows for better fitting polygon around the tetronimo
-        return new float[]{
-                60, 0,
-                60, 20,
-                40, 20,
-                40, 40,
-                20, 40,
-                20, 20,
-                0, 20,
-                0, 0
+    public void playerDead() {
+        state = GameState.DEAD;
+    }
 
-        };
+    public void win() {
+        state = GameState.END;
+    }
+
+    public void drawMenu(Texture menuToDraw) {
+        // Sets the camera position to 0,0 so we can see the menu
+        camera.position.x = 0;
+        camera.position.y = 0;
+        cameraController.update();
+        batch.setProjectionMatrix(camera.combined);
+        batch.begin();
+        batch.draw(menuToDraw, 0, 0);
+        batch.end();
     }
 }

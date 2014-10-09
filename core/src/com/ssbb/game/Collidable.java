@@ -1,10 +1,8 @@
 package com.ssbb.game;
 
-import com.badlogic.gdx.files.FileHandle;
-import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
-import com.badlogic.gdx.math.Polygon;
+import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
 
 /**
@@ -12,45 +10,80 @@ import com.badlogic.gdx.math.Rectangle;
  * Created by calvin on 2014/09/05.
  */
 public class Collidable {
+    // Position and Speed
     public int x, y;
+    public int ax, ay;
+    public int direction;
+
+    // Sprite and some useful booleans
     public Sprite sprite;
     public boolean colliding;
-    public Polygon bounding;
-    public int direction;
     public boolean grounded;
     public boolean dead;
 
     public Collidable(String name) {
-        // name is the filename, and will setup the sprite and mask
+        // name is the filename, and will setup the sprite
         sprite = new Sprite(new Texture(name));
-        bounding = rectToPoly(sprite.getBoundingRectangle());
-    }
-
-    public static Polygon rectToPoly(Rectangle r) {
-        // Generates a polygon from a rectangle
-        return new Polygon(new float[]{
-                r.x + r.width, r.y,
-                r.x + r.width, r.y + r.height,
-                r.x, r.y + r.height,
-                r.x, r.y
-        });
-
-    }
-
-    public void setPolygon(float[] coord){
-        // Allows setting of better-fitting polygons
-        bounding = new Polygon(coord);
     }
 
     public void flip(boolean t) {
         sprite.setFlip(t, false);
-        if(t){
+        if (t) {
             direction = -1;
         } else {
             direction = 1;
         }
-        // This does not work for pixel perfect collision
-        // Would need to generate a mask for flipped sprite
-        // Final game will not use pixel perfect collision
+    }
+
+    public void resolve(Rectangle r) {
+        // Resolves a collision with another Rectangle
+        Rectangle pr = sprite.getBoundingRectangle();
+        Rectangle intersection = new Rectangle();
+
+        // Find the size of the intersection
+        Intersector.intersectRectangles(pr, r, intersection);
+
+        if (intersection.width > intersection.height + 10) {
+            // y direction smaller
+            solveY(intersection);
+            ay = 0;
+        } else {
+            // x direction smaller
+            if (intersection.height < 20 && pr.y == intersection.y) {
+                y += intersection.height;
+            }
+            solveX(intersection);
+            ax = 0;
+        }
+
+        sprite.setPosition(x, y);
+    }
+
+    private void solveY(Rectangle intersection) {
+
+        Rectangle pr = sprite.getBoundingRectangle();
+
+        if (pr.y != intersection.y) {
+            y -= intersection.height;
+        } else {
+            y += intersection.height;
+            grounded = true;
+        }
+    }
+
+    private void solveX(Rectangle intersection) {
+
+        Rectangle pr = sprite.getBoundingRectangle();
+
+        if (pr.x == intersection.x) {
+            x += intersection.width;
+        } else {
+            x -= intersection.width;
+        }
+    }
+
+    public void update() {
+        // Blank for object that don't move
+        // objects that do override this
     }
 }

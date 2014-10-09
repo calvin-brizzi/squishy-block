@@ -1,25 +1,39 @@
 package com.ssbb.game;
 
-import com.badlogic.gdx.math.Intersector;
-import com.badlogic.gdx.math.Rectangle;
-
 /**
+ * Our Hero!
  * Created by calvin on 2014/09/26.
  */
 public class Player extends Collidable {
     SquishyBlock game;
-
-    public int ax, ay, prevx, prevy;
+    public int life;
+    boolean hit;
+    int timer;
 
     public Player(String name, SquishyBlock game) {
         super(name);
         direction = 1;
         this.game = game;
+        life = 10;
     }
 
     public void update() {
-        prevx = x;
-        prevy = y;
+        // Life stuff
+        if (life > 10) {
+            life = 10;
+        } else if (life < 1) {
+            dead = true;
+            game.playerDead();
+        }
+
+        // Disable controls when hit
+        if (hit) {
+            timer++;
+            if (timer > 15) {
+                hit = false;
+            }
+        }
+
         // Player movement
         ay -= SquishyBlock.GRAVITY;
         y += ay;
@@ -35,6 +49,7 @@ public class Player extends Collidable {
         }
         x += ax;
 
+        // Keep player on screen
         if (x < 0) {
             x = 0;
         }
@@ -43,46 +58,19 @@ public class Player extends Collidable {
         }
     }
 
-    public void resolve(Rectangle r) {
-        Rectangle pr = sprite.getBoundingRectangle();
-        Rectangle intersection = new Rectangle();
-        Intersector.intersectRectangles(pr, r, intersection);
-        if (intersection.width > intersection.height + 10) {
-            // y direction smaller
-            solveY(intersection);
-            ay = 0;
+    public void hit() {
+        // Ouch! If hit, get thrown in the opposite direction
+        hit = true;
+        timer = 0;
+        if (ax < 0) {
+            ax = 25;
+            ay = 10;
         } else {
-            if (intersection.height < 20 && pr.y == intersection.y){
-                y += intersection.height;
-            }
-            solveX(intersection);
-            ax = 0;
-
+            ax = -25;
+            ay = 10;
         }
-        sprite.setPosition(x, y);
+        x += ax;
     }
 
-    private void solveY(Rectangle intersection) {
-        Rectangle pr =  sprite.getBoundingRectangle();
 
-        if (pr.y != intersection.y) {
-            prevy = y;
-            y -= intersection.height;
-        } else {
-            prevy = y;
-            y += intersection.height;
-            grounded = true;
-        }
-    }
-
-    private void solveX(Rectangle intersection) {
-        Rectangle pr =  sprite.getBoundingRectangle();
-        if (pr.x == intersection.x) {
-            prevx = x;
-            x += intersection.width;
-        } else {
-            prevx = x;
-            x -= intersection.width;
-        }
-    }
 }
