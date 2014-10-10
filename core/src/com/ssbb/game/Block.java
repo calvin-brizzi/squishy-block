@@ -31,6 +31,12 @@ public class Block extends Collidable {
             x = (int)(cam.cam.position.x + cam.camWidth - sprite.getWidth());
         }
 
+        if(y > cam.cam.position.y + cam.camHeight - 20){
+            y = (int)cam.cam.position.y + cam.camHeight - 20;
+        } else if (!dropping && y < cam.cam.position.y - cam.camHeight + 40){
+            y = (int)cam.cam.position.y - cam.camHeight + 40;
+        }
+
         // Get it to the right height
         if (rising){
             y += 30;

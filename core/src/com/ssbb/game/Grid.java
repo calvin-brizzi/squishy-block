@@ -15,6 +15,7 @@ public class Grid {
     private ArrayList<Collidable>[] grid = new ArrayList[6];
     private int width;
     SquishyBlock game;
+    int counter = 0;
 
     public Grid(int width, SquishyBlock game) {
         // A simple constructor
@@ -82,6 +83,10 @@ public class Grid {
 
     public void resolveCollisions() {
 
+        counter++;
+        if(counter > 30){
+            game.aStar.resetPaths();
+        }
         // Get the colliders and list those that need to be deleted
         ArrayList<Collidable> colliders = game.colliders;
         ArrayList<Collidable> toDelete = new ArrayList<Collidable>();
@@ -145,7 +150,7 @@ public class Grid {
                                 }
                             }
 
-                            if (first == game.tetronimo && game.tetronimo.dropping) {
+                            if (first == game.tetronimo && game.tetronimo.dropping && !(second instanceof Door)) {
                                 // You squished an enemy!
                                 second.dead = true;
                             }

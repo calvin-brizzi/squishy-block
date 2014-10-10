@@ -1,6 +1,8 @@
 package com.ssbb.game;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 
 /**
  * A tiledMapRenderer to create our world
@@ -16,6 +18,7 @@ public class Renderer {
     }
 
     public void render() {
+
 
         // Animation and camera
         game.animationState += Gdx.graphics.getDeltaTime();
@@ -50,6 +53,22 @@ public class Renderer {
         // Draw lives, scores to come?
         renderHUD();
         game.batch.end();
+
+        if (Gdx.input.isKeyPressed(Input.Keys.S)) {
+
+            // Draw the paths
+            game.lines.setProjectionMatrix(game.camera.combined);
+            game.lines.begin(ShapeRenderer.ShapeType.Line);
+            for (int i = 0; i < game.aStar.mapWidth; i++) {
+                for (int j = 0; j < game.aStar.mapHeight; j++) {
+                    PathFinder.Node temp = game.aStar.nodes[i][j];
+                    if (temp.hasPath()) {
+                        game.lines.line(temp.x * 64, temp.y * 64, temp.child.x * 64, temp.child.y * 64);
+                    }
+                }
+            }
+            game.lines.end();
+        }
     }
 
     private void renderHUD() {
@@ -61,7 +80,7 @@ public class Renderer {
         int halfHearts = lives % 2;
         int noHearts = (totalLives / 2 - fullHearts - halfHearts);
         for (int i = 0; i < fullHearts; i++) {
-            game.batch.draw(game.heart, (game.camera.position.x - game.cameraController.camWidth) + 20 * i + 15, (game.camera.position.y - game.cameraController.camHeight) +  10);
+            game.batch.draw(game.heart, (game.camera.position.x - game.cameraController.camWidth) + 20 * i + 15, (game.camera.position.y - game.cameraController.camHeight) + 10);
         }
         for (int i = 0; i < halfHearts; i++) {
             game.batch.draw(game.halfHeart, (game.camera.position.x - game.cameraController.camWidth) + 20 * (i + fullHearts) + 15, (game.camera.position.y - game.cameraController.camHeight) + 10);

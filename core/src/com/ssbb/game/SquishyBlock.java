@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapObjects;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
@@ -44,6 +45,8 @@ public class SquishyBlock extends ApplicationAdapter {
     public Renderer gameRendered = new Renderer(this);
     OrthogonalTiledMapRenderer tiledMapRenderer;
     Creator creator = new Creator(this);
+    public ShapeRenderer lines;
+
 
     // Our entities and the list to store them
     public Player player;
@@ -87,11 +90,13 @@ public class SquishyBlock extends ApplicationAdapter {
 
     // A*
     PathFinder aStar;
+    int level;
+    String[] levels = {"astar.tmx", "t.tmx", "three.tmx"};
 
     @Override
     public void create() {
         // Pass off most responsibilities
-        creator.newGame();
+        creator.newGame(levels[level]);
         menu = new Texture("menu.png");
         pause = new Texture("pause.png");
         dead = new Texture("dead.png");
@@ -119,9 +124,10 @@ public class SquishyBlock extends ApplicationAdapter {
                 //state = GameState.PAUSE;
                 break;
             case MENU:
+                level = 0;
                 drawMenu(menu);
                 if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-                    creator.newGame();
+                    creator.newGame(levels[level]);
                     state = GameState.RUN;
                 }
                 break;
@@ -142,7 +148,8 @@ public class SquishyBlock extends ApplicationAdapter {
             case END:
                 drawMenu(win);
                 if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-                    state = GameState.MENU;
+                    creator.newGame(levels[level]);
+                    state = GameState.RUN;
                 }
                 break;
         }
@@ -154,6 +161,10 @@ public class SquishyBlock extends ApplicationAdapter {
 
     public void win() {
         state = GameState.END;
+        level ++;
+        if(level >= levels.length){
+            level = 0;
+        }
     }
 
     public void drawMenu(Texture menuToDraw) {

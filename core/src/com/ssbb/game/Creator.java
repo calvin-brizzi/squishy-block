@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.MapProperties;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
@@ -24,7 +25,7 @@ public class Creator {
         this.game = game;
     }
 
-    public void newGame() {
+    public void newGame(String mapName) {
         // Clear so we avoid stuff persisting
         game.colliders.clear();
 
@@ -47,7 +48,7 @@ public class Creator {
         game.animationState = 0f;
 
         // Setup collidable objects in the game
-        game.map = new TmxMapLoader().load("astar.tmx");
+        game.map = new TmxMapLoader().load(mapName);
         game.layer = game.map.getLayers().get("collisio");
         game.objects = game.layer.getObjects();
         game.obstacles = game.objects.getByType(RectangleMapObject.class);
@@ -60,6 +61,7 @@ public class Creator {
 
         // Usual initializers
         game.batch = new SpriteBatch();
+        game.lines = new ShapeRenderer();
 
         // Initialize player
         game.player = new Player("player.png", game);

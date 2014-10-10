@@ -11,8 +11,29 @@ In a terminal run "make run"
 AD and SPACE control the player (little blue man)
 arrows controls the tetronimo (tetris-like block)
 right control brings death to the enemies
+Q shows the paths of the enemies
 
 
+OLD README BELOW THE DOUBLE LINE OF "="
+
+
+A* pathfinding has been added! Q shows this nicely! It was optimized with the use of clever data structures and skip-thinking!
+
+The bees have a tendency to chill even when you can see them, this is so you can see the A* in action!
+They also have a Finite State machine set for the extra 20%! They shift from waiting, to finding to chasing as needed!
+
+The ghosts are incredibly stupid! They only head for the player, but, as ghosts, can go through walls!!
+
+
+THREE WHOLE FUN LEVELS!
+Calvin
+
+
+
+
+
+================================================================================
+================================================================================
 I decided to do my own thing from scratch rather than the supplied blocky thing.
 Learnt a lot.
 

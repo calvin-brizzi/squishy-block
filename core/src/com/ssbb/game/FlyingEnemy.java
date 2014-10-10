@@ -7,8 +7,15 @@ package com.ssbb.game;
 public class FlyingEnemy extends Collidable {
 
     Player player;
-    int speed = 7;
     PathFinder aStar;
+    State state = State.WAITING;
+
+    // Our simple state machine
+    static enum State {
+        FINDING,
+        CHASING,
+        WAITING,
+    }
 
     public FlyingEnemy(String name, Player player, PathFinder aStar) {
         super(name);
@@ -17,29 +24,53 @@ public class FlyingEnemy extends Collidable {
     }
 
     public void update() {
-        int[] next = aStar.nextMove(this.sprite, player.sprite);
-        int xo = next[0] * 64 + 32;
-        int yo = next[1] * 64 + 32;
-        System.out.println(xo + ", " + yo);
+        int objectiveX = player.x ;
+        int objectiveY = player.y;
         int ySpeed = 7;
         int xSpeed = 1;
+        int dtp = (objectiveX- this.x) * (objectiveX- this.x) + (objectiveY- this.y) * (objectiveY- this.y);
+        if (dtp < 4096) {
+            // We're close enough to go direct
+            state = State.CHASING;
+        } else if (dtp < 400000) {
+            // Use A*
+            state = State.FINDING;
+        }
 
-        if (Math.abs(xo - x) > Math.abs(yo - y)) {
+        switch (state) {
+            case FINDING:
+                // Get the next block
+                int[] next = aStar.nextMove(this.sprite, player.sprite);
+                objectiveX = next[0] * 64 + 10 ;
+                objectiveY = next[1] * 64 + 10;
+                ySpeed = 7;
+                xSpeed = 1;
+
+                break;
+            case WAITING:
+                // Chillax
+                xSpeed = 0;
+                ySpeed = 0;
+
+        }
+        if (Math.abs(objectiveX - x) > Math.abs(objectiveY - y) && xSpeed > 0) {
+            // Where to dedicate more speed
             xSpeed = 7;
             ySpeed = 1;
         }
 
-        if (x - xo > 0) {
+        // Movement
+        if (x - objectiveX > 0) {
             x -= xSpeed;
 
-        } else if (x - xo < 0) {
+        } else if (x - objectiveX < 0) {
             x += xSpeed;
         }
 
-        if (y - yo > 0) {
+        if (y - objectiveY > 0) {
             y -= ySpeed;
 
-        } else if (y - yo < 0){
+        } else if (y - objectiveY < 0) {
             y += ySpeed;
         }
     }

@@ -8,9 +8,12 @@ import java.util.HashSet;
 import java.util.PriorityQueue;
 
 /**
+ * A pathfinding class, some optimizations done
  * Created by calvin on 2014/10/06.
  */
 public class PathFinder {
+
+    // Useful numbers and things
     public int mapHeight;
     public int mapWidth;
     SquishyBlock game;
@@ -19,6 +22,7 @@ public class PathFinder {
     PriorityQueue<Node> open;
     HashSet<Node> closed;
 
+    // Quick constructor
     public PathFinder(SquishyBlock game) {
         mapHeight = game.mapHeight / 64;
         mapWidth = game.mapWidth / 64;
@@ -30,62 +34,84 @@ public class PathFinder {
     }
 
     public int[] nextMove(Sprite hunter, Sprite prey) {
+        // Looks at the hunter's position and sees if there is already a path to follow
         int hunterX = (int) hunter.getX() / 64;
         int hunterY = (int) hunter.getY() / 64;
         Node child = nodes[hunterX][hunterY];
-        System.out.println("This is happening I guess:" + 2);
 
-        if (null == child.child) {
+        while (!child.hasPath()) {
+            // If there is none, find one!
             findPath(hunter, prey);
         }
+
+        // Ugly, but no tuples in Java
         int[] toReturn = {child.child.x, child.child.y};
-        System.out.println("Returning" + toReturn);
 
         return toReturn;
     }
 
-    public void findPath(Sprite hunter, Sprite prey) {
-        int hunterX = (int) hunter.getBoundingRectangle().x /64;
-        int hunterY = (int) hunter.getBoundingRectangle().y /64;
-        int preyX = (int) prey.getBoundingRectangle().x / 64;
-        int preyY = (int) prey.getBoundingRectangle().y / 64;
-        System.out.println("Hunter is at" + hunterX + " , " + hunterY);
-        System.out.println("Prey is at" + preyX + " , " + preyY);
+    public void resetPaths() {
+        // Clear the paths every half a second to avoid aiming at the old location
+        for (int i = 0; i < mapWidth; i++) {
+            for (int j = 0; j < mapHeight; j++) {
+                nodes[i][j].clear();
+            }
+        }
 
+    }
+
+    public void findPath(Sprite hunter, Sprite prey) {
+
+        // Get out positions in terms of tiles
+        int hunterX = Math.min((int) hunter.getBoundingRectangle().x / 64, mapWidth - 1);
+        int hunterY = Math.min((int) hunter.getBoundingRectangle().y / 64, mapHeight - 1);
+        int preyX = Math.min((int) (prey.getBoundingRectangle().x + 10) / 64, mapWidth - 1);
+        int preyY = Math.min((int) (prey.getBoundingRectangle().y + 10) / 64, mapHeight - 1);
+
+        // Start the things that need to be started
         open.clear();
         closed.clear();
         int currentX = hunterX;
         int currentY = hunterY;
         int g = 0;
+
+        // Setup our nodes
         Node next = nodes[currentX][currentY];
         next.x = currentX;
         next.y = currentY;
         next.parent = null;
         Node objective = nodes[preyX][preyY];
         Node current = null;
+
+        // So we can break
         boolean done = false;
         closed.add(next);
 
         do {
-            System.out.println("Entering loop, looking at node at" + next.x + " " + next.y + "," + next.f);
+            // increment g
             g++;
+
+            // Loop through the 4 closest options
             for (int i = -1; i < 2; i++) {
                 if (done) break;
                 for (int j = -1; j < 2; j++) {
                     int x = currentX + i;
                     int y = currentY + j;
-                    if (x >= 0 && x < mapWidth && y >= 0 && y < mapHeight && (x != currentX || y != currentY) && (j ==0 || i == 0)) {
+                    // Make sure it's on the map
+                    if (x >= 0 && x < mapWidth && y >= 0 && y < mapHeight && (x != currentX || y != currentY) && (j == 0 || i == 0)) {
                         current = nodes[x][y];
                         if (!closed.contains(current) && !open.contains(current)) {
+                            // If it's not in closed and not already in open
                             if (current.pass) {
-                                System.out.println("adding " + x +" , " + y);
                                 int h = Math.max(Math.abs(currentX - preyX), Math.abs(currentY - preyY));
                                 int f = h + g;
                                 current.set(g, h, f, x, y, next);
                                 if (current == objective) {
+                                    // We've got him boys
                                     done = true;
                                     break;
                                 }
+                                // Add the node
                                 open.add(current);
                             }
                         }
@@ -94,30 +120,26 @@ public class PathFinder {
             }
             if (done) break;
 
+            // Close the current node and move on
             closed.add(next);
             next = open.remove();
-            while (closed.contains(next)){
+            while (closed.contains(next)) {
                 next = open.remove();
             }
             g = next.g;
             currentX = next.x;
             currentY = next.y;
-        } while (open.size() > 0 );
-        System.out.println("Does this happen I wonder?");
+        } while (open.size() > 0);
 
-        if (current != objective) {
-            // dead end
-        } else {
-            retrace(current);
-        }
+        retrace(current);
 
     }
 
     public void retrace(Node current) {
+        // Step back until the beginning
         Node temp;
         current.child = null;
-        while (current.parent != null ) {
-            System.out.println(current);
+        while (current.parent != null) {
             temp = current;
             current = current.parent;
             current.child = temp;
@@ -125,6 +147,7 @@ public class PathFinder {
     }
 
     public void createGrid() {
+        // For each wall, create an unpassable node
         nodes = new Node[mapWidth][mapHeight];
         for (RectangleMapObject o : obstacles) {
             fill(o);
@@ -132,19 +155,21 @@ public class PathFinder {
     }
 
     public void fill(RectangleMapObject o) {
+        // Find the positions of the vertexes and fill the rectangle
+
         int blx = (int) o.getRectangle().x;
         int bly = (int) o.getRectangle().y;
         int width = (int) o.getRectangle().width;
         int height = (int) o.getRectangle().height;
 
 
-        for (int j = bly / 64; j <= (bly + height) / 64; j++) {
-            for (int i = blx / 64; i <= (blx + width) / 64; i++) {
+        for (int j = bly / 64; j <= (bly + height) / 64 && j < mapHeight; j++) {
+            for (int i = blx / 64; i <= (blx + width) / 64 && i < mapWidth; i++) {
                 nodes[i][j] = new Node(false);
-                System.out.println(nodes[i][j] + "is inpassable bly" + i + "  blx  " + j );
             }
         }
 
+        // Fill the rest
         for (int i = 0; i < mapWidth; i++) {
             for (int j = 0; j < mapHeight; j++) {
                 if (null == nodes[i][j]) {
@@ -154,15 +179,9 @@ public class PathFinder {
         }
     }
 
-    public void reset() {
-        for (int i = 0; i < mapWidth; i++) {
-            for (int j = 0; j < mapHeight; j++) {
-                nodes[i][j].reset();
-            }
-        }
-    }
 
     public class Node implements Comparable<Node> {
+        // A tile Node
         public Node parent;
         public Node child;
         public int g;
@@ -171,25 +190,25 @@ public class PathFinder {
         public int x;
         public int y;
         boolean pass;
-        boolean set;
+
 
         public Node(boolean pass) {
+            // To see if it's passable
             this.pass = pass;
-            set = false;
         }
 
-        public void reset() {
-            set = false;
-        }
 
         public void clear() {
             child = null;
+            parent = null;
         }
 
         public boolean hasPath() {
+            // To see if it's been used on a path
             return child != null;
         }
 
+        // Practically a constuctor
         public void set(int g, int h, int f, int x, int y, Node parent) {
             this.parent = parent;
             this.g = g;
@@ -197,16 +216,12 @@ public class PathFinder {
             this.f = f;
             this.x = x;
             this.y = y;
-            set = true;
         }
 
         @Override
+        // So we can put it into a priorityQueue
         public int compareTo(Node node) {
             return this.f - node.f;
-        }
-
-        public String toString(){
-            return "x: " + x + " y: " + y;
         }
     }
 }
